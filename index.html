@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dharatrack — Understand, track, and reduce your personal carbon footprint with personalized insights and an AI-powered assistant.">
+  <meta name="theme-color" content="#0d1117">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://esm.run https://www.gstatic.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://generativelanguage.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com;">
+
+  <title>Dharatrack — Carbon Footprint Tracker</title>
+
+  <!-- DOMPurify for robust HTML Sanitization -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+
+  <!-- Import Map for Google Services -->
+  <script type="importmap">
+    {
+      "imports": {
+        "@google/generative-ai": "https://esm.run/@google/generative-ai",
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"
+      }
+    }
+  </script>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/chat.css">
+  <link rel="stylesheet" href="css/nature.css">
+
+  <!-- Inline critical styles for onboarding mode -->
+  <style>
+    .onboarding-mode {
+      margin-left: 0 !important;
+      padding: 0 !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- Skip to Content (Accessibility) -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- App Shell -->
+  <div class="app-shell">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar hidden" id="sidebar" aria-label="Sidebar navigation">
+      <!-- Populated by nav.js -->
+    </aside>
+
+    <!-- Sidebar Overlay (Mobile) -->
+    <div class="sidebar-overlay hidden" id="sidebar-overlay" aria-hidden="true"></div>
+
+    <!-- Mobile Header -->
+    <header class="mobile-header hidden" id="mobile-header">
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="Open navigation" aria-expanded="false">
+        ☰
+      </button>
+      <div class="sidebar-logo">
+        <div class="logo-icon" aria-hidden="true">🌍</div>
+        <span>Dharatrack</span>
+      </div>
+      <div style="width: 40px;"></div> <!-- Spacer for alignment -->
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content onboarding-mode" id="main-content" role="main">
+      <!-- Populated by router -->
+    </main>
+
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" aria-live="polite"></div>
+
+  <!-- App Script (ES Module) -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
