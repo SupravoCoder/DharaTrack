@@ -249,6 +249,16 @@ Then enable **Cloud Sync** in Settings.
 
 ---
 
+## 👨‍💻 About the Author
+
+🔭 Exploring the intersection of hardware & software
+💻 Skilled in low-level programming (C/C++) and performance-driven computing
+🕵️ Cybersecurity learner working on network security & penetration testing
+⚡ Fascinated by GPU architectures, HPC clusters, and quantum algorithms
+🎯 Goal: To contribute in cutting-edge computing research & security
+
+---
+
 ## 📄 License
 
 MIT — see [LICENSE](LICENSE).
