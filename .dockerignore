@@ -1,0 +1,6 @@
+# Ignore .git and node_modules from Docker build context
+.git
+.gitignore
+node_modules
+*.log
+*.tmp
