@@ -15,6 +15,9 @@ import { today } from './utils/format.js';
 const STORAGE_KEY = 'carbonfootprint_v1';
 const SCHEMA_VERSION = 1;
 
+/** Maximum number of activity entries stored to prevent localStorage bloat. */
+const MAX_ACTIVITIES = 1000;
+
 /* ---- Default State ---- */
 
 const DEFAULT_STATE = {
@@ -184,9 +187,9 @@ export function addActivity(activity) {
 
     state.activities.unshift(entry);
 
-    // Keep only last 1000 entries to prevent localStorage bloat
-    if (state.activities.length > 1000) {
-      state.activities = state.activities.slice(0, 1000);
+    // Keep only last MAX_ACTIVITIES entries to prevent localStorage bloat
+    if (state.activities.length > MAX_ACTIVITIES) {
+      state.activities = state.activities.slice(0, MAX_ACTIVITIES);
     }
 
     // Update streak
@@ -352,6 +355,10 @@ export function getDailyTotals(startDate, endDate) {
 
 /* ---- Internal Helpers ---- */
 
+/**
+ * Persist state to localStorage and optionally sync to Firebase.
+ * @param {Object} state - State object to persist
+ */
 function persistState(state) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -393,6 +400,11 @@ async function syncToFirebase(state) {
   }
 }
 
+/**
+ * Notify all subscribers of a state change.
+ * Errors in individual subscribers are caught and logged.
+ * @param {Object} state - New state to broadcast
+ */
 function notifySubscribers(state) {
   for (const cb of subscribers) {
     try {
@@ -403,6 +415,11 @@ function notifySubscribers(state) {
   }
 }
 
+/**
+ * Update the logging streak based on today's date.
+ * Increments streak if user logged yesterday, resets if gap detected.
+ * @param {Object} state - Mutable state object
+ */
 function updateStreak(state) {
   const todayStr = today();
   
@@ -427,6 +444,11 @@ function updateStreak(state) {
   state.streak.longest = Math.max(state.streak.longest, state.streak.current);
 }
 
+/**
+ * Migrate state from an older schema version to the current one.
+ * @param {Object} oldState - State with outdated schema
+ * @returns {Object} Migrated state at current schema version
+ */
 function migrateState(oldState) {
   // For now, just merge with defaults
   const migrated = deepMerge(structuredClone(DEFAULT_STATE), oldState);
@@ -434,6 +456,13 @@ function migrateState(oldState) {
   return migrated;
 }
 
+/**
+ * Deep merge two objects, recursively merging nested objects.
+ * Arrays and null values in source overwrite target values.
+ * @param {Object} target - Base object
+ * @param {Object} source - Object with overrides
+ * @returns {Object} Merged result (new object)
+ */
 function deepMerge(target, source) {
   const result = { ...target };
   for (const key of Object.keys(source)) {
@@ -446,6 +475,10 @@ function deepMerge(target, source) {
   return result;
 }
 
+/**
+ * Generate a unique ID using timestamp + random suffix.
+ * @returns {string} Unique identifier (e.g. "lxyz1234ab")
+ */
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }

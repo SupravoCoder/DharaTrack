@@ -107,7 +107,7 @@
 
     // ---- Import Modules ----
     const { Sanitize } = await import('../js/utils/sanitize.js');
-    const { formatCO2, formatDate, formatRelativeTime, formatPercentage, today, daysAgo, dateRange } = await import('../js/utils/format.js');
+    const { formatCO2, formatDate, formatRelativeTime, formatPercentage, formatNumber, weekStart, monthStart, today, daysAgo, dateRange } = await import('../js/utils/format.js');
     const { calculateTransport, calculateDiet, calculateEnergy, calculateShopping, calculateTotalFromQuiz, activityToCO2, getFootprintRating, TRANSPORT_FACTORS, DIET_FACTORS, BASELINES } = await import('../js/engine/calculator.js');
     const { TIPS_DATABASE, getTips, getRelevantTips, getRandomTip } = await import('../js/engine/tips.js');
     const { CHALLENGES, getChallengeById, getChallengeProgress } = await import('../js/engine/challenges.js');
@@ -513,24 +513,421 @@
       });
     });
 
-    // ==== NEW TESTS ====
-    describe('Format Utils', () => {
-      it('should format numbers correctly', () => {
-        expect(formatCO2(500)).toContain('kg');
+
+    // ==== STORE CRUD TESTS ====
+    // Note: We need to import store functions for testing
+    const storeModule = await import('../js/store.js');
+    const { getState, setState, resetState, addActivity, deleteActivity, getActivities, getDailyTotals, getTotalCO2, setMonthlyTarget, joinChallenge, completeChallengeDay, leaveChallenge } = storeModule;
+
+    // Reset state before store tests
+    resetState();
+
+    describe('Store — State Management', () => {
+      it('should return default state when fresh', () => {
+        resetState();
+        const state = getState();
+        expect(state.onboarded).toBe(false);
+        expect(state.activities).toEqual([]);
+        expect(state.breakdown.total).toBe(0);
+      });
+
+      it('should update state with partial updates', () => {
+        resetState();
+        setState({ onboarded: true });
+        const state = getState();
+        expect(state.onboarded).toBe(true);
+      });
+
+      it('should update state with updater function', () => {
+        resetState();
+        setState(s => { s.onboarded = true; return s; });
+        expect(getState().onboarded).toBe(true);
+      });
+
+      it('should set _lastUpdated on each setState', () => {
+        resetState();
+        setState({ onboarded: true });
+        expect(getState()._lastUpdated).toBeTruthy();
       });
     });
 
-    describe('DOM Utils', () => {
-      it('should exist', () => {
-        expect(typeof document).toBe('object');
+    describe('Store — Activity CRUD', () => {
+      it('should add an activity', () => {
+        resetState();
+        addActivity({ category: 'transport', type: 'car_petrol', label: 'Drove to work', amount: 20, unit: 'km', co2: 3.84, date: today(), description: 'Test' });
+        const activities = getActivities({});
+        expect(activities.length).toBe(1);
+        expect(activities[0].category).toBe('transport');
+      });
+
+      it('should generate unique IDs for activities', () => {
+        resetState();
+        addActivity({ category: 'transport', type: 'car_petrol', label: 'Trip 1', amount: 10, unit: 'km', co2: 1.92 });
+        addActivity({ category: 'diet', type: 'beef', label: 'Beef meal', amount: 1, unit: 'servings', co2: 6.61 });
+        const activities = getActivities({});
+        expect(activities.length).toBe(2);
+        const ids = activities.map(a => a.id);
+        expect(ids[0] !== ids[1]).toBeTruthy();
+      });
+
+      it('should delete an activity by ID', () => {
+        resetState();
+        addActivity({ category: 'transport', type: 'car_petrol', label: 'Test', amount: 10, unit: 'km', co2: 1.92 });
+        const activities = getActivities({});
+        const id = activities[0].id;
+        deleteActivity(id);
+        expect(getActivities({}).length).toBe(0);
+      });
+
+      it('should filter activities by category', () => {
+        resetState();
+        addActivity({ category: 'transport', type: 'car_petrol', label: 'Drive', amount: 10, unit: 'km', co2: 1.92 });
+        addActivity({ category: 'diet', type: 'beef', label: 'Beef', amount: 1, unit: 'servings', co2: 6.61 });
+        const transport = getActivities({ category: 'transport' });
+        expect(transport.length).toBe(1);
+        expect(transport[0].category).toBe('transport');
+      });
+
+      it('should sanitize activity inputs', () => {
+        resetState();
+        addActivity({ category: 'transport', type: '<script>alert(1)<\\/script>', label: 'Test<b>Bold</b>', amount: -5, unit: 'km', co2: 999999 });
+        const activities = getActivities({});
+        expect(activities[0].amount).toBe(0); // min: 0
+        expect(activities[0].co2).toBe(100000); // max: 100000
       });
     });
 
-    describe('Router', () => {
-      it('should exist', () => {
-        expect(typeof window).toBe('object');
+    describe('Store — CO2 Queries', () => {
+      it('should calculate total CO2 for a date range', () => {
+        resetState();
+        const todayStr = today();
+        addActivity({ category: 'transport', type: 'car_petrol', label: 'Drive', amount: 10, unit: 'km', co2: 1.92, date: todayStr });
+        addActivity({ category: 'diet', type: 'beef', label: 'Beef', amount: 1, unit: 'servings', co2: 6.61, date: todayStr });
+        const total = getTotalCO2(todayStr, todayStr);
+        expect(total).toBeCloseTo(8.53, 0.1);
+      });
+
+      it('should return daily totals', () => {
+        resetState();
+        const todayStr = today();
+        addActivity({ category: 'transport', type: 'car_petrol', label: 'Drive', amount: 10, unit: 'km', co2: 5.0, date: todayStr });
+        const dailyTotals = getDailyTotals(todayStr, todayStr);
+        expect(dailyTotals.length).toBe(1);
+        expect(dailyTotals[0].total).toBeCloseTo(5.0, 0.1);
+        expect(dailyTotals[0].transport).toBeCloseTo(5.0, 0.1);
       });
     });
+
+    // ==== GOAL MANAGEMENT TESTS ====
+    describe('Store — Goal Management', () => {
+      it('should set monthly target', () => {
+        resetState();
+        setMonthlyTarget(500);
+        expect(getState().goals.monthlyTarget).toBe(500);
+      });
+
+      it('should sanitize monthly target', () => {
+        resetState();
+        setMonthlyTarget(-100);
+        expect(getState().goals.monthlyTarget).toBe(0);
+      });
+
+      it('should join a challenge', () => {
+        resetState();
+        joinChallenge('meatless-mondays');
+        const challenges = getState().goals.activeChallenges;
+        expect(challenges.length).toBe(1);
+        expect(challenges[0].challengeId).toBe('meatless-mondays');
+      });
+
+      it('should not duplicate challenge joins', () => {
+        resetState();
+        joinChallenge('meatless-mondays');
+        joinChallenge('meatless-mondays');
+        expect(getState().goals.activeChallenges.length).toBe(1);
+      });
+
+      it('should complete a challenge day', () => {
+        resetState();
+        joinChallenge('meatless-mondays');
+        completeChallengeDay('meatless-mondays', 1);
+        const challenge = getState().goals.activeChallenges[0];
+        expect(challenge.completedDays).toContain(1);
+      });
+
+      it('should not duplicate completed days', () => {
+        resetState();
+        joinChallenge('meatless-mondays');
+        completeChallengeDay('meatless-mondays', 1);
+        completeChallengeDay('meatless-mondays', 1);
+        const challenge = getState().goals.activeChallenges[0];
+        expect(challenge.completedDays.length).toBe(1);
+      });
+
+      it('should leave a challenge', () => {
+        resetState();
+        joinChallenge('meatless-mondays');
+        joinChallenge('bike-week');
+        leaveChallenge('meatless-mondays');
+        expect(getState().goals.activeChallenges.length).toBe(1);
+        expect(getState().goals.activeChallenges[0].challengeId).toBe('bike-week');
+      });
+    });
+
+    // ==== COMPREHENSIVE FORMAT TESTS ====
+    // Formatter functions already imported at the top
+
+    describe('Format — Percentage', () => {
+      it('should format 0.42 as 42%', () => {
+        expect(formatPercentage(0.42)).toBe('42%');
+      });
+
+      it('should format 1.0 as 100%', () => {
+        expect(formatPercentage(1.0)).toBe('100%');
+      });
+
+      it('should format with decimals', () => {
+        expect(formatPercentage(0.4567, 1)).toBe('45.7%');
+      });
+
+      it('should handle zero', () => {
+        expect(formatPercentage(0)).toBe('0%');
+      });
+    });
+
+    describe('Format — Number', () => {
+      it('should format with locale separators', () => {
+        const result = formatNumber(1234567);
+        expect(result).toContain('1');
+      });
+
+      it('should support decimal places', () => {
+        const result = formatNumber(42.567, 2);
+        expect(result).toContain('42');
+      });
+    });
+
+    describe('Format — Relative Time', () => {
+      it('should return "just now" for recent times', () => {
+        const now = new Date();
+        expect(formatRelativeTime(now)).toBe('just now');
+      });
+
+      it('should return empty string for invalid dates', () => {
+        expect(formatRelativeTime('not-a-date')).toBe('');
+      });
+
+      it('should format yesterday', () => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        yesterday.setHours(yesterday.getHours() - 1);
+        expect(formatRelativeTime(yesterday)).toBe('yesterday');
+      });
+    });
+
+    describe('Format — Date Helpers', () => {
+      it('weekStart should return a valid date string', () => {
+        const ws = weekStart();
+        expect(ws.length).toBe(10);
+        expect(ws[4]).toBe('-');
+        // weekStart should be within the last 7 days
+        expect(ws <= today()).toBeTruthy();
+      });
+
+      it('monthStart should return first of current month', () => {
+        const ms = monthStart();
+        // Due to timezones, this might be 31, 01, or 02 in UTC
+        const day = ms.slice(-2);
+        expect(day === '01' || day === '02' || day === '31').toBeTruthy();
+      });
+
+      it('formatDate should handle Date objects', () => {
+        const result = formatDate(new Date('2024-06-15'));
+        expect(result).toContain('Jun');
+        expect(result).toContain('15');
+      });
+
+      it('formatDate should handle invalid date strings', () => {
+        expect(formatDate('garbage')).toBe('Invalid date');
+      });
+
+      it('formatDate should support short style', () => {
+        const result = formatDate('2024-12-25', 'short');
+        expect(result).toContain('12');
+        expect(result).toContain('25');
+      });
+    });
+
+    // ==== DOM UTILITY TESTS ====
+    const { createElement, clearChildren, setHTML, safeHTML } = await import('../js/utils/dom.js');
+
+    describe('DOM — createElement', () => {
+      it('should create element with correct tag', () => {
+        const el = createElement('div');
+        expect(el.tagName).toBe('DIV');
+      });
+
+      it('should set className', () => {
+        const el = createElement('span', { className: 'test-class' });
+        expect(el.className).toBe('test-class');
+      });
+
+      it('should set dataset attributes', () => {
+        const el = createElement('div', { dataset: { foo: 'bar' } });
+        expect(el.dataset.foo).toBe('bar');
+      });
+
+      it('should set ARIA attributes', () => {
+        const el = createElement('button', { aria: { label: 'Click me', expanded: 'false' } });
+        expect(el.getAttribute('aria-label')).toBe('Click me');
+        expect(el.getAttribute('aria-expanded')).toBe('false');
+      });
+
+      it('should add text children', () => {
+        const el = createElement('p', {}, 'Hello', ' World');
+        expect(el.textContent).toBe('Hello World');
+      });
+
+      it('should add element children', () => {
+        const child = createElement('span', {}, 'inner');
+        const parent = createElement('div', {}, child);
+        expect(parent.children.length).toBe(1);
+        expect(parent.children[0].textContent).toBe('inner');
+      });
+    });
+
+    describe('DOM — clearChildren', () => {
+      it('should remove all child nodes', () => {
+        const el = document.createElement('div');
+        el.appendChild(document.createElement('span'));
+        el.appendChild(document.createElement('p'));
+        clearChildren(el);
+        expect(el.childNodes.length).toBe(0);
+      });
+    });
+
+    describe('DOM — setHTML', () => {
+      it('should set HTML content', () => {
+        const el = document.createElement('div');
+        setHTML(el, '<b>Bold</b>');
+        expect(el.innerHTML).toContain('Bold');
+      });
+    });
+
+    describe('DOM — safeHTML', () => {
+      it('should escape interpolated values', () => {
+        const userInput = '<script>alert("xss")<\\/script>';
+        const result = safeHTML`<p>User said: ${userInput}</p>`;
+        expect(result).toContain('&lt;script&gt;');
+        expect(result.includes('<script>')).toBeFalsy();
+      });
+    });
+
+    // ==== CHALLENGES EDGE CASE TESTS ====
+    describe('Challenges — Edge Cases', () => {
+      it('should return undefined for unknown challenge ID', () => {
+        const ch = getChallengeById('nonexistent');
+        expect(ch).toBe(undefined);
+      });
+
+      it('should return zero progress for unknown challenge', () => {
+        const progress = getChallengeProgress('nonexistent', [1, 2, 3]);
+        expect(progress.percentage).toBe(0);
+        expect(progress.completedCount).toBe(0);
+        expect(progress.totalDays).toBe(0);
+      });
+
+      it('should calculate savings correctly', () => {
+        const progress = getChallengeProgress('meatless-mondays', [1, 5, 7]);
+        expect(progress.savedKg).toBeGreaterThan(0);
+        expect(progress.completedCount).toBe(3);
+      });
+
+      it('should have 30-day tasks for each challenge', () => {
+        CHALLENGES.forEach(ch => {
+          expect(ch.tasks.length).toBe(30);
+          expect(ch.totalDays).toBe(30);
+        });
+      });
+
+      it('should have unique challenge IDs', () => {
+        const ids = CHALLENGES.map(c => c.id);
+        const unique = new Set(ids);
+        expect(unique.size).toBe(ids.length);
+      });
+    });
+
+    // ==== CALCULATOR — ENERGY & SHOPPING TESTS ====
+    // Calculator functions already imported at the top
+
+    describe('Calculator — Energy Calculation', () => {
+      it('should calculate energy for default profile', () => {
+        const result = calculateEnergy({ homeSize: 'medium', heatingType: 'gas', renewablePercent: 0 });
+        expect(result).toBeGreaterThan(1000);
+      });
+
+      it('should reduce emissions with 100% renewables', () => {
+        const noRenewable = calculateEnergy({ homeSize: 'medium', heatingType: 'gas', renewablePercent: 0 });
+        const fullRenewable = calculateEnergy({ homeSize: 'medium', heatingType: 'gas', renewablePercent: 100 });
+        expect(fullRenewable).toBeLessThan(noRenewable);
+      });
+
+      it('should have higher emissions for larger homes', () => {
+        const small = calculateEnergy({ homeSize: 'small', heatingType: 'gas', renewablePercent: 0 });
+        const large = calculateEnergy({ homeSize: 'large', heatingType: 'gas', renewablePercent: 0 });
+        expect(large).toBeGreaterThan(small);
+      });
+
+      it('should handle heat_pump heating', () => {
+        const gas = calculateEnergy({ homeSize: 'medium', heatingType: 'gas', renewablePercent: 0 });
+        const heatPump = calculateEnergy({ homeSize: 'medium', heatingType: 'heat_pump', renewablePercent: 0 });
+        expect(heatPump).toBeLessThan(gas);
+      });
+
+      it('should handle no heating', () => {
+        const result = calculateEnergy({ homeSize: 'medium', heatingType: 'none', renewablePercent: 0 });
+        expect(result).toBeGreaterThan(0); // Still has electricity
+      });
+    });
+
+    describe('Calculator — Shopping Calculation', () => {
+      it('should calculate shopping for default profile', () => {
+        const result = calculateShopping({ shoppingHabit: 'moderate', onlineOrders: 4 });
+        expect(result).toBeGreaterThan(0);
+      });
+
+      it('should have higher emissions for heavy shoppers', () => {
+        const minimal = calculateShopping({ shoppingHabit: 'minimal', onlineOrders: 0 });
+        const heavy = calculateShopping({ shoppingHabit: 'heavy', onlineOrders: 20 });
+        expect(heavy).toBeGreaterThan(minimal);
+      });
+
+      it('should increase with more online orders', () => {
+        const few = calculateShopping({ shoppingHabit: 'moderate', onlineOrders: 1 });
+        const many = calculateShopping({ shoppingHabit: 'moderate', onlineOrders: 20 });
+        expect(many).toBeGreaterThan(few);
+      });
+    });
+
+    // ==== ROUTER TESTS ====
+    const { navigateTo, getCurrentRoute, registerRoute } = await import('../js/router.js');
+
+    describe('Router — Navigation', () => {
+      it('navigateTo should update location hash', () => {
+        navigateTo('/test-route');
+        expect(window.location.hash).toBe('#/test-route');
+      });
+
+      it('should parse route path from hash', () => {
+        // After navigateTo, getCurrentRoute may not have been set
+        // since we didn't init the router, but the hash should be set
+        expect(window.location.hash.startsWith('#/')).toBeTruthy();
+      });
+    });
+
+    // Clean up test state
+    resetState();
+
 
     // ---- Render Results ----
     const summaryEl = document.getElementById('summary');

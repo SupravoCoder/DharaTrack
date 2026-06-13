@@ -88,7 +88,8 @@ export class Assistant {
    * @param {Array}  [context.recentActivities] - Recent activity log
    * @param {Object} [context.goals] - User goals
    * @param {number} [context.streak] - Current streak
-   * @returns {Object} { text, quickReplies, type }
+   * @param {string} [context.apiKey] - Optional Gemini API key for AI responses
+   * @returns {Promise<{text: string, quickReplies: string[], type: string}>} Response object
    */
   async respond(userMessage, context = {}) {
     const input = userMessage.toLowerCase().trim();
@@ -180,18 +181,16 @@ Provide a highly personalized response. If you suggest actions, keep them releva
     }
   }
 
-  _detectIntent(input) {
-    for (const [intent, keywords] of Object.entries(INTENT_KEYWORDS)) {
-      if (keywords.some(k => input.includes(k))) return intent;
-    }
-    return 'unknown';
-  }
+
 
   /**
    * Generate a proactive message based on recent activity.
    * Called when user logs an activity.
    * @param {Object} context
-   * @returns {Object|null} Message object or null if no proactive message
+   * @param {Array} [context.recentActivities] - Recent activity log entries
+   * @param {Object} [context.breakdown] - Category breakdown
+   * @param {number} [context.streak] - Current logging streak
+   * @returns {{text: string, quickReplies: string[], type: string}|null} Message object or null
    */
   getProactiveMessage(context) {
     const { recentActivities, breakdown, streak } = context;
@@ -253,7 +252,9 @@ Provide a highly personalized response. If you suggest actions, keep them releva
   /**
    * Get the initial greeting message.
    * @param {Object} context
-   * @returns {Object}
+   * @param {Object} [context.profile] - User profile from quiz
+   * @param {Object} [context.breakdown] - Category breakdown
+   * @returns {{text: string, quickReplies: string[], type: string}} Greeting response
    */
   getGreeting(context) {
     if (context.profile) {

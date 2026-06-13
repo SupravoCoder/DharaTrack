@@ -42,7 +42,7 @@ export function formatCO2(kgCO2, opts = {}) {
  * Format a number with locale-appropriate separators.
  * @param {number} num
  * @param {number} [decimals=0]
- * @returns {string}
+ * @returns {string} Locale-formatted number string
  */
 export function formatNumber(num, decimals = 0) {
   return Number(num).toLocaleString('en-US', {
@@ -55,7 +55,7 @@ export function formatNumber(num, decimals = 0) {
  * Format a percentage.
  * @param {number} value - Decimal value (e.g., 0.42)
  * @param {number} [decimals=0]
- * @returns {string} e.g., "42%"
+ * @returns {string} Formatted percentage (e.g., "42%")
  */
 export function formatPercentage(value, decimals = 0) {
   return `${(value * 100).toFixed(decimals)}%`;
@@ -149,7 +149,7 @@ export function monthStart() {
  * Generate an array of date strings between start and end (inclusive).
  * @param {string} start - Start date (YYYY-MM-DD)
  * @param {string} end - End date (YYYY-MM-DD)
- * @returns {string[]}
+ * @returns {string[]} Array of date strings in YYYY-MM-DD format
  */
 export function dateRange(start, end) {
   const dates = [];

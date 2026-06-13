@@ -19,6 +19,11 @@ const routes = {};
 let currentRoute = null;
 let containerEl = null;
 
+/** Duration in ms for the view fade-out before re-render. */
+const VIEW_TRANSITION_OUT_MS = 150;
+/** Duration in ms for the view fade-in after re-render. */
+const VIEW_TRANSITION_IN_MS = 300;
+
 /**
  * Register a route.
  * @param {string} path - Hash path (e.g., '/dashboard')
@@ -133,7 +138,6 @@ function renderRoute(route) {
     // Create view wrapper
     const view = document.createElement('div');
     view.className = 'view-container';
-    view.setAttribute('role', 'main');
     containerEl.appendChild(view);
 
     // Render route content
@@ -141,7 +145,7 @@ function renderRoute(route) {
 
     // Fade in
     requestAnimationFrame(() => {
-      containerEl.style.transition = 'opacity 300ms ease, transform 300ms ease';
+      containerEl.style.transition = `opacity ${VIEW_TRANSITION_IN_MS}ms ease, transform ${VIEW_TRANSITION_IN_MS}ms ease`;
       containerEl.style.opacity = '1';
       containerEl.style.transform = 'translateY(0)';
     });
@@ -150,7 +154,7 @@ function renderRoute(route) {
     if (route.onEnter) {
       route.onEnter(view);
     }
-  }, 150);
+  }, VIEW_TRANSITION_OUT_MS);
 }
 
 function updateActiveNav(path) {

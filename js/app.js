@@ -122,7 +122,7 @@ function hideAppLayout() {
 
   if (sidebar) sidebar.classList.add('hidden');
   if (mobileHeader) mobileHeader.classList.add('hidden');
-  if (overlay) overlay.style.display = 'none';
+  if (overlay) overlay.classList.add('hidden');
   if (mainContent) mainContent.classList.add('onboarding-mode');
 }
 

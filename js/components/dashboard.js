@@ -45,6 +45,7 @@ export function renderDashboard(container) {
     </div>
 
     <!-- Stat Cards Row -->
+    <h2 class="sr-only">Key Metrics</h2>
     <div class="grid-4 stagger-children" style="margin-bottom: var(--space-xl);">
       <div class="stat-card animate-fade-in-up">
         <div class="stat-icon" style="background: hsla(152, 68%, 52%, 0.12); color: var(--color-accent);" aria-hidden="true">🌍</div>
@@ -75,6 +76,7 @@ export function renderDashboard(container) {
       </div>
     </div>
 
+    <h2 class="sr-only">Charts & Analysis</h2>
     <div class="grid-2" style="margin-bottom: var(--space-xl);">
       <!-- Category Breakdown -->
       <div class="card animate-fade-in-up">

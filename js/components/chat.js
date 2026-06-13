@@ -31,6 +31,7 @@ export function initChat() {
   panel.className = 'chat-panel hidden';
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-label', 'EcoBot assistant');
+  panel.setAttribute('aria-modal', 'true');
   panel.innerHTML = `
     <div class="chat-header">
       <div class="chat-avatar" aria-hidden="true">🤖</div>

@@ -42,7 +42,7 @@ export function renderGoals(container) {
               <span style="font-size: var(--text-sm); color: var(--color-text-secondary);">This month: ${monthlyCO2.toFixed(1)} kg</span>
               <span style="font-size: var(--text-sm); font-weight: var(--weight-semibold);">Target: ${monthlyTarget} kg</span>
             </div>
-            <div class="progress-bar progress-bar-lg">
+            <div class="progress-bar progress-bar-lg" role="progressbar" aria-valuenow="${monthProgress}" aria-valuemin="0" aria-valuemax="100" aria-label="Monthly CO₂ budget usage">
               <div class="progress-bar-fill ${monthProgress <= 100 ? 'animated' : ''}" style="width: ${Math.min(100, monthProgress)}%; ${monthProgress > 90 ? 'background: linear-gradient(90deg, var(--color-warning), var(--color-danger));' : ''}"></div>
             </div>
             <div style="display: flex; justify-content: space-between; margin-top: var(--space-xs);">
@@ -140,7 +140,7 @@ function renderActiveChallenge(activeChallenge) {
             <span style="font-size: var(--text-sm);">Progress</span>
             <span style="font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--color-accent);">${progress.percentage}%</span>
           </div>
-          <div class="progress-bar">
+          <div class="progress-bar" role="progressbar" aria-valuenow="${progress.percentage}" aria-valuemin="0" aria-valuemax="100" aria-label="Challenge progress">
             <div class="progress-bar-fill animated" style="width: ${progress.percentage}%;"></div>
           </div>
           <div style="font-size: var(--text-xs); color: var(--color-text-tertiary); margin-top: var(--space-2xs);">

@@ -75,7 +75,7 @@ export function renderInsights(container) {
               return `
                 <div style="display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-sm);">
                   <span style="width: 80px; font-size: var(--text-sm);">${getCategoryIcon(cat)} ${cat}</span>
-                  <div class="progress-bar" style="flex: 1;">
+                  <div class="progress-bar" style="flex: 1;" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${cat} emissions">
                     <div class="progress-bar-fill" style="width: ${pct}%; background: var(--color-${cat});"></div>
                   </div>
                   <span style="width: 70px; text-align: right; font-size: var(--text-sm); font-weight: var(--weight-medium);">${val.toFixed(1)} kg</span>

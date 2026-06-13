@@ -328,7 +328,7 @@ function showResults() {
         <span style="font-size: var(--text-lg);" aria-hidden="true">${cat.icon}</span>
         <span style="flex: 1; font-size: var(--text-sm); font-weight: var(--weight-medium);">${cat.label}</span>
         <span style="font-size: var(--text-sm); color: var(--color-text-secondary);">${(value/1000).toFixed(1)}t</span>
-        <div class="progress-bar" style="width: 100px;">
+        <div class="progress-bar" style="width: 100px;" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${cat.label} percentage">
           <div class="progress-bar-fill" style="width: ${pct}%; background: ${cat.color};"></div>
         </div>
         <span style="font-size: var(--text-xs); color: var(--color-text-tertiary); width: 35px; text-align: right;">${pct}%</span>
