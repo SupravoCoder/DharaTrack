@@ -4,3 +4,7 @@
 node_modules
 *.log
 *.tmp
+tests/
+run_tests.js
+package.json
+package-lock.json
